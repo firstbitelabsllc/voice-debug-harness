@@ -1,0 +1,68 @@
+{
+  "name": "voice-debug-harness",
+  "version": "0.1.0",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "description": "Portable voice debug harness: offline WAV corpus, Chromium mic-feed helpers, and PCM/RMS energy probes for browser voice tests.",
+  "bin": {
+    "voice-debug": "./cli.mjs"
+  },
+  "exports": {
+    ".": "./index.mjs",
+    "./wav": "./lib/wav.mjs",
+    "./energy": "./lib/energy.mjs",
+    "./mic-feed": "./lib/mic-feed.mjs",
+    "./chromium": "./lib/chromium.mjs",
+    "./corpus": "./lib/corpus.mjs",
+    "./wer": "./lib/wer.mjs"
+  },
+  "files": [
+    "cli.mjs",
+    "ci-offline.mjs",
+    "browser-smoke.mjs",
+    "smoke.test.mjs",
+    "wer.test.mjs",
+    "index.mjs",
+    "lib",
+    "fixtures",
+    "LICENSE",
+    "README.md",
+    "SECURITY.md",
+    "release-check.mjs"
+  ],
+  "scripts": {
+    "test": "node --test smoke.test.mjs wer.test.mjs",
+    "test:consumer": "node consumer-smoke.mjs",
+    "test:browser": "node browser-smoke.mjs",
+    "ci:offline": "node ci-offline.mjs",
+    "release:verify": "node release-check.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "voice",
+    "webrtc",
+    "playwright",
+    "e2e",
+    "wav",
+    "microphone",
+    "vad",
+    "debug"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/firstbitelabsllc/voice-debug-harness.git"
+  },
+  "homepage": "https://github.com/firstbitelabsllc/voice-debug-harness#readme",
+  "bugs": {
+    "url": "https://github.com/firstbitelabsllc/voice-debug-harness/issues"
+  }
+}

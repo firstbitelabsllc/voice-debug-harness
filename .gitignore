@@ -1,0 +1,7 @@
+node_modules/
+voice-debug-corpus/
+fixtures/voice-corpus/ci-offline-synth.json
+fixtures/voice-corpus/ci-offline-synth.wav
+*.tgz
+.DS_Store
+npm-debug.log*
