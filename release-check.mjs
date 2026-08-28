@@ -58,6 +58,34 @@ for (const file of RUNTIME_SOURCES) {
   }
 }
 
+
+const FORBIDDEN_CONTENT = [
+  /sc-corp\.net/i,
+  /snapchat\.com/i,
+  /lkwan@snap/i,
+  /(?:^|@)[^@\s]*\.snap(?:\s|$)/im,
+];
+const CONTENT_TEXT_SUFFIXES = new Set([".mjs", ".md", ".json"]);
+
+for (const file of EXPECTED) {
+  if (file === "release-check.mjs") continue;
+  if (!CONTENT_TEXT_SUFFIXES.has(path.extname(file))) continue;
+  const source = readFileSync(path.join(ROOT, file), "utf8");
+  for (const pattern of FORBIDDEN_CONTENT) {
+    if (pattern.test(source)) {
+      console.error(
+        JSON.stringify({
+          ok: false,
+          error: "employer trace is forbidden in the public package",
+          file,
+          pattern: pattern.source,
+        }),
+      );
+      process.exit(1);
+    }
+  }
+}
+
 const result = spawnSync("npm", ["pack", "--dry-run", "--json"], {
   cwd: ROOT,
   encoding: "utf8",
