@@ -568,13 +568,19 @@ describe("corpus list malformed metadata", () => {
       writeFileSync(join(dir, "huge.json"), "x".repeat(64 * 1024 + 1));
       assert.throws(
         () => loadCorpusMeta(dir, "huge.json"),
-        /exceeds 65536 bytes/,
+        (error) =>
+          /exceeds 65536 bytes/.test(error.message) &&
+          !/cannot read file/.test(error.message),
+        "a size-limit rejection must not claim the file was unreadable",
       );
 
       mkdirSync(join(dir, "nonregular.json"));
       assert.throws(
         () => loadCorpusMeta(dir, "nonregular.json"),
-        /must be a regular file/,
+        (error) =>
+          /must be a regular file/.test(error.message) &&
+          !/cannot read file/.test(error.message),
+        "a non-regular-file rejection must not claim the file was unreadable",
       );
     } finally {
       rmSync(dir, { recursive: true, force: true });

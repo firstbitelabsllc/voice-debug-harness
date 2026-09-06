@@ -179,17 +179,19 @@ export function loadCorpusMeta(corpusDir, file) {
         `corpus metadata ${safeTerminalText(file)} exceeds ${MAX_CORPUS_META_BYTES} bytes`,
       );
     }
-    raw = readFileSync(fd, "utf8");
+    try {
+      raw = readFileSync(fd, "utf8");
+    } catch (cause) {
+      const msg = cause instanceof Error ? cause.message : String(cause);
+      throw new Error(
+        `corpus metadata ${safeTerminalText(file)}: cannot read file (${safeTerminalText(msg)}).`,
+      );
+    }
     if (Buffer.byteLength(raw, "utf8") > MAX_CORPUS_META_BYTES) {
       throw new Error(
         `corpus metadata ${safeTerminalText(file)} exceeds ${MAX_CORPUS_META_BYTES} bytes`,
       );
     }
-  } catch (cause) {
-    const msg = cause instanceof Error ? cause.message : String(cause);
-    throw new Error(
-      `corpus metadata ${safeTerminalText(file)}: cannot read file (${safeTerminalText(msg)}).`,
-    );
   } finally {
     closeSync(fd);
   }
