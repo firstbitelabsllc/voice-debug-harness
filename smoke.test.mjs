@@ -58,6 +58,7 @@ import {
   measureRms,
   measurePeakAbs,
   measureWavEnergy,
+  measurePeakAbsFromWav,
   readBoundedWavFile,
   decodeMonoPcm16Wav,
   DEFAULT_RMS_THRESHOLD,
@@ -136,6 +137,13 @@ describe("voice-debug-harness Class A offline", () => {
     const energy = measureWavEnergy(readFileSync(FIXTURE_WAV));
     assert.ok(energy.peakAbs > 0.3, JSON.stringify(energy));
     assert.ok(energy.rms > DEFAULT_RMS_THRESHOLD, JSON.stringify(energy));
+  });
+
+  it("measurePeakAbsFromWav takes WAV bytes, not raw byte values", () => {
+    const bytes = readFileSync(FIXTURE_WAV);
+    const peak = measurePeakAbsFromWav(bytes);
+    assert.equal(peak, measureWavEnergy(bytes).peakAbs);
+    assert.ok(peak <= 1, `peak ${peak} is not in -1..1 float space`);
   });
 
   it("padWavWithSilence lengthens PCM WAV", () => {
@@ -484,6 +492,24 @@ describe("corpus write path (clean-install safe)", () => {
       );
       assert.equal(forced.status, 0, forced.stderr || forced.stdout);
 
+      const emptyText = spawnSync(
+        process.execPath,
+        [CLI, "generate", "--id", "empty-text-probe", "--text", ""],
+        {
+          cwd: consumerCwd,
+          env: { ...process.env, VOICE_DEBUG_CORPUS_DIR: "" },
+          encoding: "utf8",
+        },
+      );
+      assert.equal(emptyText.status, 0, emptyText.stderr || emptyText.stdout);
+      const emptyMeta = JSON.parse(
+        readFileSync(
+          join(consumerCwd, DEFAULT_WRITE_CORPUS_DIRNAME, "empty-text-probe.json"),
+          "utf8",
+        ),
+      );
+      assert.equal(emptyMeta.text, "", "an explicit --text must be recorded verbatim");
+
       const race = () =>
         new Promise((resolveRace) => {
           const child = spawn(
@@ -542,13 +568,19 @@ describe("corpus list malformed metadata", () => {
       writeFileSync(join(dir, "huge.json"), "x".repeat(64 * 1024 + 1));
       assert.throws(
         () => loadCorpusMeta(dir, "huge.json"),
-        /exceeds 65536 bytes/,
+        (error) =>
+          /exceeds 65536 bytes/.test(error.message) &&
+          !/cannot read file/.test(error.message),
+        "a size-limit rejection must not claim the file was unreadable",
       );
 
       mkdirSync(join(dir, "nonregular.json"));
       assert.throws(
         () => loadCorpusMeta(dir, "nonregular.json"),
-        /must be a regular file/,
+        (error) =>
+          /must be a regular file/.test(error.message) &&
+          !/cannot read file/.test(error.message),
+        "a non-regular-file rejection must not claim the file was unreadable",
       );
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -827,6 +859,37 @@ describe("WAV parse hardening (negative cases)", () => {
       );
     } finally {
       unlinkSync(src);
+    }
+  });
+});
+
+describe("corpus read path follows generate", () => {
+  it("energy and list find an id that generate just wrote in the cwd", () => {
+    const consumerCwd = mkdtempSync(join(tmpdir(), "vdh-read-after-gen-"));
+    const env = { ...process.env, VOICE_DEBUG_CORPUS_DIR: "" };
+    const cli = (args) =>
+      spawnSync(process.execPath, [CLI, ...args], {
+        cwd: consumerCwd,
+        env,
+        encoding: "utf8",
+      });
+    try {
+      const bundled = cli(["energy"]);
+      assert.equal(bundled.status, 0, bundled.stderr);
+      assert.match(bundled.stdout, /^id=coach-hashmap-explain$/m);
+
+      const generated = cli(["generate", "--id", "local-probe"]);
+      assert.equal(generated.status, 0, generated.stderr);
+
+      const energy = cli(["energy", "--id", "local-probe"]);
+      assert.equal(energy.status, 0, energy.stderr);
+      assert.match(energy.stdout, /^id=local-probe$/m);
+
+      const listed = cli(["list"]);
+      assert.equal(listed.status, 0, listed.stderr);
+      assert.match(listed.stdout, /^local-probe\twav=ok/m);
+    } finally {
+      rmSync(consumerCwd, { recursive: true, force: true });
     }
   });
 });
