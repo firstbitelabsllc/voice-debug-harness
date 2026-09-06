@@ -58,6 +58,7 @@ import {
   measureRms,
   measurePeakAbs,
   measureWavEnergy,
+  measurePeakAbsFromWav,
   readBoundedWavFile,
   decodeMonoPcm16Wav,
   DEFAULT_RMS_THRESHOLD,
@@ -136,6 +137,13 @@ describe("voice-debug-harness Class A offline", () => {
     const energy = measureWavEnergy(readFileSync(FIXTURE_WAV));
     assert.ok(energy.peakAbs > 0.3, JSON.stringify(energy));
     assert.ok(energy.rms > DEFAULT_RMS_THRESHOLD, JSON.stringify(energy));
+  });
+
+  it("measurePeakAbsFromWav takes WAV bytes, not raw byte values", () => {
+    const bytes = readFileSync(FIXTURE_WAV);
+    const peak = measurePeakAbsFromWav(bytes);
+    assert.equal(peak, measureWavEnergy(bytes).peakAbs);
+    assert.ok(peak <= 1, `peak ${peak} is not in -1..1 float space`);
   });
 
   it("padWavWithSilence lengthens PCM WAV", () => {

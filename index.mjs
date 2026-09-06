@@ -6,7 +6,6 @@ export {
   floatTo16BitPCM,
   synthesizeSpeechEnergySamples,
   padWavWithSilence,
-  measurePeakAbs as measurePeakAbsFromWav,
   MAX_WAV_BYTES,
   MAX_WAV_DURATION_SECONDS,
   MAX_SAMPLE_RATE,
@@ -22,6 +21,13 @@ export {
   DEFAULT_RMS_THRESHOLD,
   DEFAULT_FRAMES_ABOVE,
 } from "./lib/energy.mjs";
+
+import { measureWavEnergy } from "./lib/energy.mjs";
+
+/** Peak absolute amplitude (0..1) of a mono 16-bit PCM WAV buffer. */
+export function measurePeakAbsFromWav(bytes) {
+  return measureWavEnergy(bytes).peakAbs;
+}
 
 export {
   MIC_FEED_INIT_SCRIPT,
