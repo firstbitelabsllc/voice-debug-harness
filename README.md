@@ -1,4 +1,6 @@
-# voice-debug-harness
+# Voice Debug Harness
+
+**Put repeatable audio into a browser microphone test.**
 
 Generate and probe bounded speech-energy WAV fixtures, then inject them into
 Chromium so `getUserMedia()` carries real audio energy for offline voice
@@ -6,10 +8,12 @@ debugging. The package runtime and CLI make no network calls.
 
 ## Install from source
 
+Requires Node.js 20+ and npm. Chromium is optional for the offline checks.
+
 ```bash
 git clone https://github.com/firstbitelabsllc/voice-debug-harness.git
 cd voice-debug-harness
-npm install
+npm ci
 ```
 
 Optional browser binary (only for `npm run test:browser`):
@@ -119,6 +123,13 @@ Relative import from this tree: `./index.mjs` (or package subpath exports
 1. **Primary (multi-turn):** `installMicFeed(page)` before navigation, then `feedAudio(page, wavBytes)` after `getUserMedia`.
 2. **Secondary (single-shot):** `fakeMicFileCaptureArgs(wavPath)` → Chromium `--use-file-for-fake-audio-capture=…`.
 3. **Energy:** `measureWavEnergy` / `measureRms` on Node; browser smoke uses a Web Audio analyser on the returned stream.
+
+The runnable [browser smoke](browser-smoke.mjs) shows the complete sequence:
+launch a disposable Chromium context, install the override, open the stream,
+check that it starts quiet, feed the bundled WAV, and measure the resulting
+energy. Run `npm run test:browser` after installing Chromium to try it without
+an app server or model account. The synthetic fixture tests the audio path;
+bring a speech recording when your test needs recognizable words.
 
 ## Integration notes (engineers)
 
