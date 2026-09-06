@@ -376,7 +376,7 @@ export async function main(argv = process.argv.slice(2)) {
     }
     const cmd = args._[0];
     const id = requireCorpusId(args.id || DEFAULT_ID);
-    const text = requireCorpusText(args.text || DEFAULT_TEXT);
+    const text = requireCorpusText(args.text ?? DEFAULT_TEXT);
     const readDir = resolveCorpusDir();
 
     if (cmd === "list") listCorpus(readDir);

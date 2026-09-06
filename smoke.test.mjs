@@ -492,6 +492,24 @@ describe("corpus write path (clean-install safe)", () => {
       );
       assert.equal(forced.status, 0, forced.stderr || forced.stdout);
 
+      const emptyText = spawnSync(
+        process.execPath,
+        [CLI, "generate", "--id", "empty-text-probe", "--text", ""],
+        {
+          cwd: consumerCwd,
+          env: { ...process.env, VOICE_DEBUG_CORPUS_DIR: "" },
+          encoding: "utf8",
+        },
+      );
+      assert.equal(emptyText.status, 0, emptyText.stderr || emptyText.stdout);
+      const emptyMeta = JSON.parse(
+        readFileSync(
+          join(consumerCwd, DEFAULT_WRITE_CORPUS_DIRNAME, "empty-text-probe.json"),
+          "utf8",
+        ),
+      );
+      assert.equal(emptyMeta.text, "", "an explicit --text must be recorded verbatim");
+
       const race = () =>
         new Promise((resolveRace) => {
           const child = spawn(
