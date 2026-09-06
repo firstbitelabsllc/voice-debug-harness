@@ -93,7 +93,7 @@ you intend to replace that local WAV/JSON pair.
 
 | Mode                                      | Resolution                                                                                                                                     |
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Read** (`list`, `energy`, `play-probe`) | `VOICE_DEBUG_CORPUS_DIR` if set; else first existing of package `fixtures/voice-corpus`, cwd `fixtures/voice-corpus`, cwd `voice-debug-corpus` |
+| **Read** (`list`, `energy`, `play-probe`) | `VOICE_DEBUG_CORPUS_DIR` if set; else first existing of cwd `voice-debug-corpus`, cwd `fixtures/voice-corpus`, package `fixtures/voice-corpus` |
 | **Write** (`generate`)                    | `VOICE_DEBUG_CORPUS_DIR` if set; otherwise `./voice-debug-corpus` under the process cwd, unless that would enter the package root              |
 
 Clean installs must not mutate files inside the package under `node_modules`.

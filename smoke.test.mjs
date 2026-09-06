@@ -830,3 +830,34 @@ describe("WAV parse hardening (negative cases)", () => {
     }
   });
 });
+
+describe("corpus read path follows generate", () => {
+  it("energy and list find an id that generate just wrote in the cwd", () => {
+    const consumerCwd = mkdtempSync(join(tmpdir(), "vdh-read-after-gen-"));
+    const env = { ...process.env, VOICE_DEBUG_CORPUS_DIR: "" };
+    const cli = (args) =>
+      spawnSync(process.execPath, [CLI, ...args], {
+        cwd: consumerCwd,
+        env,
+        encoding: "utf8",
+      });
+    try {
+      const bundled = cli(["energy"]);
+      assert.equal(bundled.status, 0, bundled.stderr);
+      assert.match(bundled.stdout, /^id=coach-hashmap-explain$/m);
+
+      const generated = cli(["generate", "--id", "local-probe"]);
+      assert.equal(generated.status, 0, generated.stderr);
+
+      const energy = cli(["energy", "--id", "local-probe"]);
+      assert.equal(energy.status, 0, energy.stderr);
+      assert.match(energy.stdout, /^id=local-probe$/m);
+
+      const listed = cli(["list"]);
+      assert.equal(listed.status, 0, listed.stderr);
+      assert.match(listed.stdout, /^local-probe\twav=ok/m);
+    } finally {
+      rmSync(consumerCwd, { recursive: true, force: true });
+    }
+  });
+});
