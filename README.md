@@ -1,63 +1,81 @@
 # Voice Debug Harness
 
-**Put repeatable audio into a browser microphone test.**
+**Feed a real WAV into a headless Chromium microphone, then measure that audio actually arrived.**
 
-Generate and probe bounded speech-energy WAV fixtures, then inject them into
-Chromium so `getUserMedia()` carries real audio energy for offline voice
-debugging. The package runtime and CLI make no network calls.
+I was building a voice feature and kept hitting the same wall in tests: the
+browser had no microphone, so `getUserMedia()` handed back silence and every
+test either mocked the whole audio path or got skipped. This package is the
+piece I pulled out. It generates small speech-energy WAV fixtures, injects
+them into a Playwright Chromium page as the mic stream, and measures RMS on
+both sides so you know sound went through.
 
-## Install from source
+It does not do speech recognition, turn-taking, or anything with a model.
+It makes no network calls. It's the audio plumbing under a voice test, and
+only that.
 
-Requires Node.js 20+ and npm. Chromium is optional for the offline checks.
+## Install
+
+Node 20+ and npm. Chromium only if you want the browser check.
 
 ```bash
 git clone https://github.com/firstbitelabsllc/voice-debug-harness.git
 cd voice-debug-harness
 npm ci
+npx playwright install chromium   # optional, for the browser smoke
 ```
 
-Optional browser binary (only for `npm run test:browser`):
-
-```bash
-npx playwright install chromium
-```
-
-## First success (offline, no browser)
+## First run, no browser
 
 ```bash
 npm test
-npm run ci:offline
-npm run test:consumer
+node cli.mjs list      # bundled fixtures
+node cli.mjs energy    # peak and RMS of the default one
+VOICE_DEBUG_CORPUS_DIR=./voice-debug-corpus node cli.mjs generate --id demo-utterance
 ```
 
-CLI (from this package directory):
+`generate` writes a synthetic WAV plus a JSON sidecar into a folder you name.
+It refuses to write inside `node_modules` or the package root, so a clean
+install never mutates itself.
+
+## The browser check
 
 ```bash
-# List bundled or configured corpus fixtures
-node cli.mjs list
-
-# Measure peak/RMS energy of the default fixture
-node cli.mjs energy
-
-# Write a new offline speech-energy fixture under ./voice-debug-corpus
-# (never under node_modules / the installed package root)
-VOICE_DEBUG_CORPUS_DIR=./voice-debug-corpus node cli.mjs generate --id demo-utterance
-
-# Optional: re-read the generated file
-VOICE_DEBUG_CORPUS_DIR=./voice-debug-corpus node cli.mjs energy --id demo-utterance
+npm run test:browser
 ```
 
-After `npm install -g .` or linking the `voice-debug` bin, the same commands work as `voice-debug list`, `voice-debug energy`, and `voice-debug generate`.
+That launches a throwaway Chromium, installs the mic override, opens a
+stream, confirms it starts silent, feeds the bundled WAV, and prints one JSON
+line with Node-side and browser-side energy. On my machine the baseline RMS
+is 0 and the fed RMS is about 0.11 against a 0.02 threshold. Below the
+threshold, the run fails. The whole sequence is in
+[browser-smoke.mjs](browser-smoke.mjs) if you want to lift it into your own
+Playwright suite.
 
-## What is proven here vs what is not
+## What a green run proves
 
-| Layer                 | Command / surface                                                                             | Proven                                                                                                                   | Not claimed                                                           |
-| --------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
-| **Offline Class A**   | `npm test`, `npm run ci:offline`, `npm run test:consumer`, CLI `list` / `energy` / `generate` | WAV encode/decode, packed install, corpus I/O, PCM energy, mic-feed **script** contract, Chromium **launch-arg** helpers | Live STT, product VAD, WebRTC sessions                                |
-| **Browser mic smoke** | `npm run test:browser`                                                                        | Real Chromium + `getUserMedia` override + WAV feed + analyser energy above package threshold                             | Network, ASR models, app UI                                           |
-| **Consumer product**  | Your app / e2e                                                                                | —                                                                                                                        | Turn-taking, entitlements, live model transcripts — **you** own these |
+| Run | Proves | Doesn't prove |
+| --- | --- | --- |
+| `npm test`, `npm run ci:offline`, `npm run test:consumer`, the CLI | WAV encode/decode, corpus I/O, PCM energy math, the mic-feed script contract, the Chromium launch-arg helpers | anything about a live browser |
+| `npm run test:browser` | Real Chromium, the `getUserMedia` override, a WAV fed through, analyser energy above threshold | that your app heard words |
+| Your app's e2e | | transcripts, VAD, turn-taking, entitlements. Those are yours. |
 
-**Never** treat transcript injection or a green unit suite alone as “voice works end-to-end.”
+If a green unit suite plus an injected transcript is the only evidence, voice
+does not "work end to end." I've been burned by that exact sentence.
+
+## Using it from your own tests
+
+```js
+import { installMicFeed, feedAudio, measureRms } from "voice-debug-harness";
+```
+
+Call `installMicFeed(page)` before navigation, then `feedAudio(page, wavBytes)`
+once your app has called `getUserMedia`. For a single-shot fixture there's
+also `fakeMicFileCaptureArgs(wavPath)`, which maps to Chromium's
+`--use-file-for-fake-audio-capture`. Bring a recording of real speech when
+your test needs recognizable words; the bundled fixture is energy only.
+
+The reference below covers the rest: every CLI verb, corpus paths and limits,
+the full export list, and the exact network statement.
 
 ## CLI reference
 
