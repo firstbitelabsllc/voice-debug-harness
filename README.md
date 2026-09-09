@@ -1,218 +1,71 @@
+<img src="docs/assets/cover.png" width="1280" alt="Voice Debug Harness — Same audio. Every test.">
+
 # Voice Debug Harness
 
-**Feed a real WAV into a headless Chromium microphone, then measure that audio actually arrived.**
+**Same audio. Every test.**
 
-This is what a green run prints:
+Feed a WAV into a Chromium microphone from Playwright. Your app receives it
+through `getUserMedia()`, so you can repeat a voice test without speaking into
+your laptop.
 
-```console
-$ npm run test:browser | tail -1 | jq .
-{
-  "ok": true,
-  "threshold": 0.02,
-  "durationSec": 2.4,
-  "nodeEnergy": {
-    "peakAbs": 0.549896240234375,
-    "rms": 0.1739175629362176,
-    "samples": 57600
-  },
-  "baselineEnergy": {
-    "peakAbs": 0,
-    "rms": 0,
-    "frames": 12,
-    "measureMs": 500
-  },
-  "browserEnergy": {
-    "peakAbs": 0.5499638915061951,
-    "rms": 0.10478561646268995,
-    "frames": 42,
-    "measureMs": 1800
-  },
-  "fixture": "fixtures/voice-corpus/coach-hashmap-explain.wav"
-}
-```
+![The local microphone example after receiving the bundled WAV](docs/assets/microphone-focus.png)
 
-Silent mic before the feed, energy on the browser side after it, one JSON
-line you can assert on. I pulled this out of a voice feature whose tests
-either mocked the whole audio path or got skipped because `getUserMedia()`
-returned silence in CI. No model, no network, no speech recognition; just
-the audio plumbing under a voice test.
+[Watch the recording](docs/assets/microphone-demo.webm) · [API & CLI reference](docs/reference.md) · [MIT license](LICENSE)
 
-[Install](#install) · [CLI reference](#cli-reference) ·
-[Library imports](#library-imports) ·
-[Issues](https://github.com/firstbitelabsllc/voice-debug-harness/issues)
+## Try it
 
-## Three pieces
+You need Node.js 20 or later.
 
-- **corpus**: small mono PCM16 WAVs plus a JSON sidecar. `generate` makes a
-  synthetic speech-energy fixture; bring your own recording for real words.
-- **mic feed**: `installMicFeed(page)` before navigation, then
-  `feedAudio(page, wavBytes)` after your app calls `getUserMedia`.
-- **energy**: peak and RMS on the Node side and on a Web Audio analyser in
-  the browser, compared against a 0.02 RMS threshold.
-
-## Install
-
-Node 20+. Chromium only for the browser check.
-
-```bash
+```sh
 git clone https://github.com/firstbitelabsllc/voice-debug-harness.git
 cd voice-debug-harness
 npm ci
-npx playwright install chromium   # optional
+npx playwright install chromium
+npm run demo
 ```
 
-## First run
+Click **Feed the WAV**. The browser microphone starts quiet, receives the
+2.4-second fixture, then returns to silence. The waveform and RMS value come
+from a Web Audio analyser connected to that stream. Close the window to exit.
 
-```bash
-npm test
-node cli.mjs list                        # bundled fixtures
-node cli.mjs energy                      # peak and RMS of the default one
-VOICE_DEBUG_CORPUS_DIR=./voice-debug-corpus node cli.mjs generate --id demo
-node cli.mjs energy --id demo            # reads ./voice-debug-corpus first
-npm run test:browser                     # the JSON above
-```
+## Use it in a test
 
-The prefix is only needed here, inside the package. From a consumer project
-`generate` writes `./voice-debug-corpus` on its own; it refuses to write
-inside this package or `node_modules`.
-
-## What a green run proves
-
-- `npm test` and `npm run ci:offline`: WAV encode and decode, corpus I/O,
-  PCM energy math, the mic-feed script contract. Nothing about a browser.
-- `npm run test:browser`: real Chromium, the `getUserMedia` override, a WAV
-  fed through, analyser RMS above threshold. Not that your app heard words.
-- Transcripts, VAD, turn-taking: your app's e2e. `wordErrorRate()` only
-  compares two strings you supply.
-
-## Feedback
-
-Open an [issue](https://github.com/firstbitelabsllc/voice-debug-harness/issues)
-with the JSON line from a failing run.
-
-## CLI reference
-
-| Command      | Role                                                                          |
-| ------------ | ----------------------------------------------------------------------------- |
-| `list`       | Inventory corpus JSON + whether matching `.wav` exists                        |
-| `energy`     | Peak + RMS on a fixture WAV                                                   |
-| `generate`   | Offline synthetic-energy WAV + metadata; never performs TTS or a network call |
-| `play-probe` | macOS `afplay` or RIFF header check                                           |
-
-`generate` fails when the selected ID already exists. Pass `--force` only when
-you intend to replace that local WAV/JSON pair.
-
-### Corpus paths
-
-| Mode                                      | Resolution                                                                                                                                     |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Read** (`list`, `energy`, `play-probe`) | `VOICE_DEBUG_CORPUS_DIR` if set; else first existing of cwd `voice-debug-corpus`, cwd `fixtures/voice-corpus`, package `fixtures/voice-corpus` |
-| **Write** (`generate`)                    | `VOICE_DEBUG_CORPUS_DIR` if set; otherwise `./voice-debug-corpus` under the process cwd, unless that would enter the package root              |
-
-Clean installs must not mutate files inside the package under `node_modules`.
-An implicit write from the package root fails closed; run from a consumer
-project or set `VOICE_DEBUG_CORPUS_DIR` explicitly.
-
-### Environment
-
-| Variable                 | Purpose                                     |
-| ------------------------ | ------------------------------------------- |
-| `VOICE_DEBUG_CORPUS_DIR` | Override corpus folder for reads and writes |
-
-Consumer-specific environment aliases belong in consumer wrappers, not this portable package.
-
-## Browser smoke
-
-```bash
-npx playwright install chromium   # once per machine
-npm run test:browser
-```
-
-Prints one JSON receipt with Node-side and browser analyser energy. Fails if energy stays below `DEFAULT_RMS_THRESHOLD` (0.02). Requires Playwright + Chromium; offline `npm test` does **not** depend on Playwright.
-
-## Library imports
+Install the cloned package in your project with `npm install /path/to/voice-debug-harness`.
 
 ```js
-import {
-  writeWavFile,
-  synthesizeSpeechEnergySamples,
-  measureWavEnergy,
-  measureRms,
-  installMicFeed,
-  feedAudio,
-  padWavWithSilence,
-  fakeDeviceArgs,
-  buildVoiceDebugLaunchArgs,
-} from "voice-debug-harness";
+import { readFile } from "node:fs/promises";
+import { installMicFeed, feedAudio } from "voice-debug-harness";
+
+await installMicFeed(page);
+await page.goto("http://localhost:3000");
+await page.getByRole("button", { name: "Start listening" }).click();
+
+const wav = await readFile("fixtures/hello.wav");
+await feedAudio(page, wav);
+// Assert what your app should do after hearing the clip.
 ```
 
-Relative import from this tree: `./index.mjs` (or package subpath exports
-`./wav`, `./energy`, `./mic-feed`, `./chromium`, `./corpus`, `./wer`).
+Install the override before navigation; feed audio after your app opens its
+microphone. Use a disposable Chromium context. The package makes no network
+calls and needs no model account.
 
-### Injection primitives
+Bring a mono PCM16 speech recording to test words. The bundled fixture is
+synthetic audio for checking the microphone path; it is not speech.
 
-1. **Primary (multi-turn):** `installMicFeed(page)` before navigation, then `feedAudio(page, wavBytes)` after `getUserMedia`.
-2. **Secondary (single-shot):** `fakeMicFileCaptureArgs(wavPath)` → Chromium `--use-file-for-fake-audio-capture=…`.
-3. **Energy:** `measureWavEnergy` / `measureRms` on Node; browser smoke uses a Web Audio analyser on the returned stream.
+## Run the checks
 
-The runnable [browser smoke](browser-smoke.mjs) shows the complete sequence:
-launch a disposable Chromium context, install the override, open the stream,
-check that it starts quiet, feed the bundled WAV, and measure the resulting
-energy. Run `npm run test:browser` after installing Chromium to try it without
-an app server or model account. The synthetic fixture tests the audio path;
-bring a speech recording when your test needs recognizable words.
-
-## Integration notes (engineers)
-
-This package is **I/O and energy only**. Product adapters (app routes, session
-mocks, entitlement gates, live STT assertions) stay in the consuming
-application. `wordErrorRate()` only compares two caller-supplied strings. It
-does not run ASR and the package publishes no calibrated production threshold.
-
-## Corpus format
-
-| File        | Role                                                   |
-| ----------- | ------------------------------------------------------ |
-| `<id>.wav`  | Mono 16-bit PCM WAV that you own or may use            |
-| `<id>.json` | `{ id, text, sampleRate?, source?, peakAbs?, notes? }` |
-
-To use real speech, bring your own matching WAV and JSON files:
-
-```bash
-mkdir -p ./my-corpus
-cp /path/to/your-owned-clip.wav ./my-corpus/hello.wav
-printf '%s\n' '{"id":"hello","text":"what the clip actually says","source":"user-supplied"}' \
-  > ./my-corpus/hello.json
-VOICE_DEBUG_CORPUS_DIR=./my-corpus node cli.mjs list
-VOICE_DEBUG_CORPUS_DIR=./my-corpus node cli.mjs energy --id hello
+```sh
+npm test                 # WAV handling, energy measurement, input validation
+npm run test:browser     # quiet microphone → WAV feed → measured audio
+npm run test:consumer    # install and use the packed package
 ```
 
-The WAV must be mono PCM16, at most 16 MiB, no longer than five minutes, and
-use a sample rate no higher than 192 kHz. Metadata is limited to 64 KiB, corpus
-text to 4,000 characters, and a listed directory to 1,000 JSON entries.
-Transcript comparison is bounded to 20,000 input characters and 1,000
-normalized words per side. Oversized or malformed input fails before expensive
-audio or edit-distance work. Synthetic generation is capped at 30 seconds and
-one padding operation at 60 seconds.
+The browser check fails if the microphone is noisy before the feed or its
+mean RMS stays at or below 0.02 afterward. Speech recognition and your app's
+response need their own assertions.
 
-`VOICE_DEBUG_CORPUS_DIR`, optional output paths passed to library helpers, and
-the supplied Playwright page are trusted local test configuration. Corpus IDs
-block separator traversal, but the package does not sandbox a configured
-directory or follow-up writes through symlinks. Use the mic override only in a
-disposable test context.
+To reproduce the screenshot and recording, run `npm run demo:record`. See
+[the example source](examples/demo.mjs) and [capture notes](docs/capture.md).
 
-Bundled fixtures under `fixtures/voice-corpus/` are synthetic and support
-offline energy-path checks only. They are not speech or transcription evidence.
-
-## Network statement
-
-The installed runtime modules and `voice-debug` CLI contain no HTTP client,
-socket, telemetry, TTS, or model-provider path. `npm install` and
-`npx playwright install chromium` may use the package registries configured on
-your machine; that installation traffic is outside the runtime. The included
-browser smoke opens a local file and makes no network request.
-
-## License
-
-MIT — see [LICENSE](LICENSE). The bundled fixture is generated by this package;
-users are responsible for rights to corpus files they add.
+If something fails, open an [issue](https://github.com/firstbitelabsllc/voice-debug-harness/issues)
+with the command and its output.

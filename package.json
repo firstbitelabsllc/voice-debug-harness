@@ -38,7 +38,10 @@
     "test:consumer": "node consumer-smoke.mjs",
     "test:browser": "node browser-smoke.mjs",
     "ci:offline": "node ci-offline.mjs",
-    "release:verify": "node release-check.mjs"
+    "release:verify": "node release-check.mjs",
+    "demo": "node examples/demo.mjs",
+    "demo:record": "node examples/demo.mjs --record",
+    "test:browser:regression": "node --test browser-smoke.test.mjs"
   },
   "devDependencies": {
     "playwright": "1.62.0"
