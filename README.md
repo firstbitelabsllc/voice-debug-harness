@@ -4,8 +4,11 @@
 
 **Same audio. Every test.**
 
-Feed a WAV into a Chromium microphone from Playwright. Your app receives it
-through `getUserMedia()`, so you can repeat a voice test without speaking into
+Feed a WAV into a Chromium microphone. Repeat your voice tests without
+repeating yourself.
+
+Control the feed from Playwright. Your app receives it through
+`getUserMedia()`, so you can replay the same input without speaking into
 your laptop.
 
 ![The local microphone example after receiving the bundled WAV](docs/assets/microphone-focus.png)
