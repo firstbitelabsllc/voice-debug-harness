@@ -211,7 +211,24 @@
         Feed a WAV into a Chromium microphone. Repeat your voice tests without
         repeating yourself.
       </p>
-      <a class="action" href="#try-it">Run it locally</a>
+      <a class="action" href="#ask-your-agent">Give this to your agent</a>
+      <section class="setup" id="ask-your-agent">
+        <div>
+          <h2>Give your agent the proof job.</h2>
+          <p>
+            Open this repository in Claude Code or Codex. The real Chromium
+            check should return measured silence before the feed and measured
+            audio afterward.
+          </p>
+          <a
+            href="https://github.com/firstbitelabsllc/voice-debug-harness#use-the-api-in-a-test"
+            >Use the API in your Playwright test ↗</a
+          >
+        </div>
+        <pre>Prove this browser microphone starts silent, receives the fixture, and
+returns to silence. Run the actual Chromium check and show measured audio
+levels.</pre>
+      </section>
       <figure class="watch">
         <video
           controls
@@ -225,19 +242,19 @@
         <figcaption>
           A recorded Chromium run: quiet microphone, WAV feed, measured audio.
           The synthetic fixture checks the audio path. Bring your own speech
-          recording to test words.
+          recording to test words; this does not prove transcription.
         </figcaption>
       </figure>
       <section class="setup" id="try-it">
         <div>
-          <h2>Try the microphone.</h2>
+          <h2>Need the raw demo?</h2>
           <p>
-            Node.js 20 or later. No model account. Click “Feed the WAV” in the
-            example, then close the window to finish.
+            Node.js 20 or later. No model account. This is the manual visual
+            demo; the coding-agent prompt above is the primary starting point.
           </p>
           <a
-            href="https://github.com/firstbitelabsllc/voice-debug-harness#use-it-in-a-test"
-            >Add it to a Playwright test ↗</a
+            href="https://github.com/firstbitelabsllc/voice-debug-harness/blob/main/docs/reference.md"
+            >Read the API and CLI reference ↗</a
           >
         </div>
         <pre>
