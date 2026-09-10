@@ -1,5 +1,21 @@
 # Reference
 
+## Start with a coding agent
+
+Open this repository in Claude Code or Codex and paste:
+
+> Prove this browser microphone starts silent and receives the fixture. Report
+> the measured audio level from the actual Chromium check.
+
+The resulting browser receipt should show quiet baseline energy and post-feed
+mean RMS above `DEFAULT_RMS_THRESHOLD` (0.02). This proves the fixture reached
+the overridden `getUserMedia()` stream in disposable Chromium. It does not
+prove speech transcription, VAD, WebRTC, or a consuming app's response: the
+bundled fixture is synthetic, not speech.
+
+For an application behavior test, supply an owned mono PCM16 speech WAV and
+assert that application's transcript or action after `feedAudio()`.
+
 ## CLI reference
 
 | Command      | Role                                                                          |

@@ -211,33 +211,50 @@
         Feed a WAV into a Chromium microphone. Repeat your voice tests without
         repeating yourself.
       </p>
-      <a class="action" href="#try-it">Run it locally</a>
+      <a class="action" href="#ask-your-agent">Give this to your agent</a>
+      <section class="setup" id="ask-your-agent">
+        <div>
+          <h2>Give your agent the proof job.</h2>
+          <p>
+            Open this repository in Claude Code or Codex. The real Chromium
+            check should return measured silence before the feed and measured
+            audio afterward.
+          </p>
+          <a
+            href="https://github.com/firstbitelabsllc/voice-debug-harness#use-the-api-in-a-test"
+            >Use the API in your Playwright test ↗</a
+          >
+        </div>
+        <pre>Prove this browser microphone starts silent and receives the fixture. Report
+the measured audio level from the actual Chromium check.</pre>
+      </section>
       <figure class="watch">
         <video
           controls
           preload="metadata"
-          poster="assets/microphone-focus.png"
-          aria-label="Recorded local microphone example"
+          poster="assets/microphone-demo.png"
+          aria-label="Recorded Claude Code run of the browser microphone check"
         >
           <source src="assets/microphone-focus.mp4" type="video/mp4" />
-          <a href="assets/microphone-focus.mp4">Watch the microphone example</a>
+          <a href="assets/microphone-focus.mp4">Watch the Claude Code run</a>
         </video>
         <figcaption>
-          A recorded Chromium run: quiet microphone, WAV feed, measured audio.
-          The synthetic fixture checks the audio path. Bring your own speech
-          recording to test words.
+          A real Claude Code run of the browser check: the terminal shows the
+          check invocation and Claude Code's reported quiet baseline and
+          post-feed audio above the threshold. The synthetic fixture checks
+          browser audio delivery, not physical audio or transcription.
         </figcaption>
       </figure>
       <section class="setup" id="try-it">
         <div>
           <h2>Try the microphone.</h2>
           <p>
-            Node.js 20 or later. No model account. Click “Feed the WAV” in the
-            example, then close the window to finish.
+            Node.js 20 or later. No model account. This is the manual visual
+            demo.
           </p>
           <a
-            href="https://github.com/firstbitelabsllc/voice-debug-harness#use-it-in-a-test"
-            >Add it to a Playwright test ↗</a
+            href="https://github.com/firstbitelabsllc/voice-debug-harness/blob/main/docs/reference.md"
+            >Read the API and CLI reference ↗</a
           >
         </div>
         <pre>
