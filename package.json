@@ -23,6 +23,13 @@
     "cli.mjs",
     "ci-offline.mjs",
     "browser-smoke.mjs",
+    "browser-smoke.test.mjs",
+    "examples/demo.mjs",
+    "examples/microphone.html",
+    "docs/cover.html",
+    "docs/assets/space-grotesk.ttf",
+    "docs/assets/OFL.txt",
+    "docs/assets/icon-v2.png",
     "smoke.test.mjs",
     "wer.test.mjs",
     "index.mjs",
@@ -38,7 +45,10 @@
     "test:consumer": "node consumer-smoke.mjs",
     "test:browser": "node browser-smoke.mjs",
     "ci:offline": "node ci-offline.mjs",
-    "release:verify": "node release-check.mjs"
+    "release:verify": "node release-check.mjs",
+    "demo": "node examples/demo.mjs",
+    "demo:record": "node examples/demo.mjs --record",
+    "test:browser:regression": "node --test browser-smoke.test.mjs"
   },
   "devDependencies": {
     "playwright": "1.62.0"

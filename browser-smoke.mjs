@@ -175,8 +175,7 @@ async function run() {
   }
 
   const browserEnergy = await measureStreamEnergy(page, MEASURE_MS);
-  const energyOk =
-    browserEnergy.peakAbs > threshold || browserEnergy.rms > threshold;
+  const energyOk = browserEnergy.rms > threshold;
   const receipt = {
     ok: baselineQuiet && energyOk,
     threshold,

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <title>Voice Debug Harness cover</title>
+  <style>
+    @font-face {
+      font-family: Space;
+      src: url(assets/space-grotesk.ttf);
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      width: 1280px;
+      height: 640px;
+      background: #f4f2eb;
+      color: #212920;
+      font-family: Space, sans-serif;
+      padding: 48px 64px;
+    }
+    .brand {
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand img {
+      width: 60px;
+      height: 60px;
+    }
+    h1 {
+      font-size: 78px;
+      font-weight: 500;
+      letter-spacing: -0.04em;
+      line-height: 1.03;
+      margin: 36px 0 20px;
+    }
+    p {
+      font-size: 22px;
+      line-height: 1.5;
+      color: #53604f;
+      max-width: 445px;
+      margin: 0;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: center;
+    }
+    .wave {
+      width: 100%;
+      margin-top: 32px;
+      border-radius: 10px;
+    }
+    footer {
+      margin-top: 40px;
+      font-size: 15px;
+      color: #53604f;
+    }
+  </style>
+  <div class="brand">
+    <img src="assets/icon-v2.png" alt="" />Voice Debug Harness
+  </div>
+  <div class="layout">
+    <div>
+      <h1>Same audio.<br />Every test.</h1>
+      <p>A repeatable microphone<br />for your Playwright tests.</p>
+    </div>
+    <img
+      class="wave"
+      src="assets/microphone-focus.png"
+      alt="Measured waveform from the local Chromium example"
+    />
+  </div>
+  <footer>WAV in. Browser audio out. Open source.</footer>
+</html>
