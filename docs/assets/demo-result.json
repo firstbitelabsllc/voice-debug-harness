@@ -1,7 +1,9 @@
 {
-  "baseline": 0,
-  "rms": 0.10457972354057347,
-  "durationSec": 2.4,
-  "frames": 169,
-  "browser": "151.0.7922.34"
+  "command": "npm run test:browser",
+  "proof": "Native interactive Claude Code ran the isolated Chromium browser check.",
+  "baselineRms": 0,
+  "postFeedRms": 0.1068,
+  "scope": "Synthetic audio through a browser microphone; this does not test physical audio or speech recognition.",
+  "browser": "151.0.7922.34",
+  "recordedAt": "2026-09-10T14:18:03.169Z"
 }

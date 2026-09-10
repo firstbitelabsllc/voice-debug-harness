@@ -4,9 +4,8 @@
 
 Open this repository in Claude Code or Codex and paste:
 
-> Prove this browser microphone starts silent, receives the fixture, and
-> returns to silence. Run the actual Chromium check and show measured audio
-> levels.
+> Prove this browser microphone starts silent and receives the fixture. Report
+> the measured audio level from the actual Chromium check.
 
 The resulting browser receipt should show quiet baseline energy and post-feed
 mean RMS above `DEFAULT_RMS_THRESHOLD` (0.02). This proves the fixture reached

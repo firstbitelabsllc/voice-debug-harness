@@ -1,17 +1,21 @@
 # Making the demo
 
-Run `npm run demo:record` after installing the development dependencies and
-Chromium, with FFmpeg on your PATH. The script opens the example in an isolated browser, checks that the
-microphone starts quiet, clicks **Feed the WAV**, and fails unless the measured
-mean RMS exceeds 0.02. It saves the full PNG and WebM, a focused PNG and MP4,
-the cover PNG, and the measured result in `docs/assets`. The focused video is
-cropped to the measured bounds of the waveform panel; no frames are fabricated.
-The screenshot and video capture that run; the waveform is drawn from the
-browser analyser. Frame timing and the measured RMS vary slightly between runs.
+Run `node docs/capture.mjs` after installing the development dependencies and
+Chromium, with `ttyd`, Claude Code, and FFmpeg on your PATH. Before recording,
+open Claude Code once in this exact checkout and complete its trust prompt; the
+recorder never broadens that trust automatically. It opens a
+loopback-only terminal, starts Claude Code in safe mode with no settings or MCP
+servers, and asks it to run `npm run test:browser`.
 
-The example uses the package's `installMicFeed` and `feedAudio` functions. It
-does not play the clip through speakers. The recording is silent because it
-shows audio entering a microphone stream, not audio sent to an output device.
+The script records the terminal Claude Code actually sees. It fails unless the
+terminal shows the browser-check command and preserves its synthetic-browser
+scope. It writes the screenshot, WebM, MP4, and a compact result record to
+`docs/assets`; the existing waveform illustration remains available for the
+cover image. The recording shows Claude Code's reported quiet baseline and
+post-feed threshold result. It does not show or prove physical audio or
+transcription.
+
+`npm run demo:record` remains the separate browser-waveform capture helper.
 
 ## Capture tools considered
 

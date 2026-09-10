@@ -225,32 +225,32 @@
             >Use the API in your Playwright test ↗</a
           >
         </div>
-        <pre>Prove this browser microphone starts silent, receives the fixture, and
-returns to silence. Run the actual Chromium check and show measured audio
-levels.</pre>
+        <pre>Prove this browser microphone starts silent and receives the fixture. Report
+the measured audio level from the actual Chromium check.</pre>
       </section>
       <figure class="watch">
         <video
           controls
           preload="metadata"
-          poster="assets/microphone-focus.png"
-          aria-label="Recorded local microphone example"
+          poster="assets/microphone-demo.png"
+          aria-label="Recorded Claude Code run of the browser microphone check"
         >
           <source src="assets/microphone-focus.mp4" type="video/mp4" />
-          <a href="assets/microphone-focus.mp4">Watch the microphone example</a>
+          <a href="assets/microphone-focus.mp4">Watch the Claude Code run</a>
         </video>
         <figcaption>
-          A recorded Chromium run: quiet microphone, WAV feed, measured audio.
-          The synthetic fixture checks the audio path. Bring your own speech
-          recording to test words; this does not prove transcription.
+          A real Claude Code run of the browser check: the terminal shows the
+          check invocation and Claude Code's reported quiet baseline and
+          post-feed audio above the threshold. The synthetic fixture checks
+          browser audio delivery, not physical audio or transcription.
         </figcaption>
       </figure>
       <section class="setup" id="try-it">
         <div>
-          <h2>Need the raw demo?</h2>
+          <h2>Try the microphone.</h2>
           <p>
             Node.js 20 or later. No model account. This is the manual visual
-            demo; the coding-agent prompt above is the primary starting point.
+            demo.
           </p>
           <a
             href="https://github.com/firstbitelabsllc/voice-debug-harness/blob/main/docs/reference.md"
