@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GPT-Live main-thread probe</title>
+</head>
+<body>
+  <main>
+    <h1>GPT-Live main-thread probe</h1>
+    <p id="status">idle</p>
+  </main>
+  <script type="module">
+    let pc;
+    let dc;
+    let stream;
+    let remoteAudio;
+
+    const status = value => { document.querySelector('#status').textContent = value; };
+    const emit = value => window.recordProbeEvent?.(value);
+
+    window.startProbe = async () => {
+      status('opening microphone');
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      pc = new RTCPeerConnection();
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+      remoteAudio = document.createElement('audio');
+      remoteAudio.autoplay = true;
+      pc.ontrack = event => { remoteAudio.srcObject = event.streams[0]; };
+      pc.onconnectionstatechange = () => emit({ type: 'browser.connection', state: pc.connectionState });
+
+      dc = pc.createDataChannel('oai-events');
+      dc.onmessage = event => {
+        let value;
+        try { value = JSON.parse(event.data); } catch { value = { type: 'non_json_event' }; }
+        emit({ direction: 'server', ...value });
+      };
+      dc.onopen = () => emit({ type: 'browser.data_channel.open' });
+      dc.onclose = () => emit({ type: 'browser.data_channel.closed' });
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await new Promise(resolve => {
+        if (pc.iceGatheringState === 'complete') return resolve();
+        const timer = setTimeout(resolve, 3_000);
+        pc.onicegatheringstatechange = () => {
+          if (pc.iceGatheringState === 'complete') { clearTimeout(timer); resolve(); }
+        };
+      });
+      const answer = await window.exchangeSdp(pc.localDescription.sdp);
+      await pc.setRemoteDescription({ type: 'answer', sdp: answer.transport.sdp });
+      status('connected');
+      return { session_id: answer.session?.id ?? null };
+    };
+
+    window.sendProbeEvent = event => {
+      if (!dc || dc.readyState !== 'open') throw new Error('data channel is not open');
+      emit({ direction: 'client', ...event });
+      dc.send(JSON.stringify(event));
+    };
+
+    window.stopProbe = () => {
+      stream?.getTracks().forEach(track => track.stop());
+      dc?.close();
+      pc?.close();
+      status('closed');
+    };
+  </script>
+</body>
+</html>
+
