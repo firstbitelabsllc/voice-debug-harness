@@ -65,10 +65,10 @@ try {
   await installMicFeed(page); // BEFORE navigation — same audio, every test
   await page.goto(PAGE_URL, { waitUntil: 'load' });
 
-  await page.getByRole('button', { name: 'Connect' }).click();
+  await page.getByRole('button', { name: 'Start talking' }).click();
 
   await page.waitForFunction(
-    () => (document.getElementById('state')?.textContent || '').includes('Live'),
+    () => document.body.dataset.state === 'live',
     null, { timeout: 60000 }
   );
   console.log('LIVE: session up');
