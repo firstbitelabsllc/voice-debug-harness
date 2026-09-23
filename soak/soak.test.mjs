@@ -114,4 +114,18 @@ describe('GPT-Live probe helpers', () => {
       d: { pass: true, evidence: 'append_A_ack_at_ms:91600' },
     });
   });
+
+  it('credits small-talk speech emitted before fixture B in the same millisecond', () => {
+    const events = [
+      { type: 'session.delegation.created', at_ms: 1_000, delegation: { id: 'A' }, label: 'A' },
+      { type: 'fixture.feed', at_ms: 9_676, label: 'smalltalk' },
+      { type: 'session.output_transcript.delta', at_ms: 12_656, delta: "It's going" },
+      { type: 'fixture.feed', at_ms: 12_656, label: 'B' },
+    ];
+
+    assert.deepEqual(evaluateProbe(events).a, {
+      pass: true,
+      evidence: 'smalltalk_speech_at_ms:12656',
+    });
+  });
 });

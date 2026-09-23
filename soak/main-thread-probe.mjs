@@ -42,10 +42,6 @@ function eventType(event) {
   return event.type || event.event?.type || '';
 }
 
-function firstAfter(events, type, afterMs, predicate = () => true) {
-  return events.find(event => eventType(event) === type && event.at_ms >= afterMs && predicate(event));
-}
-
 export function evaluateProbe(events) {
   const delegations = events.filter(event => eventType(event) === 'session.delegation.created');
   const a = delegations.find(event => event.label === 'A') ?? delegations[0];
@@ -58,12 +54,16 @@ export function evaluateProbe(events) {
   const labeledSmalltalk = events.find(
     event => eventType(event) === 'session.output_transcript.delta' && event.label === 'smalltalk' && smalltalkPattern.test(String(event.delta ?? '')),
   );
-  const smalltalkSpeech = labeledSmalltalk || (fixtureSmalltalk && firstAfter(
-    events,
-    'session.output_transcript.delta',
-    fixtureSmalltalk.at_ms,
-    event => event.at_ms <= fixtureSmalltalk.at_ms + 15_000 && (!fixtureB || event.at_ms < fixtureB.at_ms) && smalltalkPattern.test(String(event.delta ?? '')),
-  ));
+  const smalltalkStart = events.indexOf(fixtureSmalltalk);
+  const fixtureBIndex = events.indexOf(fixtureB);
+  const smalltalkWindow = fixtureSmalltalk
+    ? events.slice(smalltalkStart + 1, fixtureBIndex >= 0 ? fixtureBIndex : undefined)
+    : [];
+  const smalltalkSpeech = labeledSmalltalk || smalltalkWindow.find(
+    event => eventType(event) === 'session.output_transcript.delta' &&
+      event.at_ms <= fixtureSmalltalk.at_ms + 15_000 &&
+      smalltalkPattern.test(String(event.delta ?? '')),
+  );
   const ackA = appendA && events.find(event => eventType(event) === 'session.commentary.appended' && event.client_event_id === appendA.event_id);
   const transcriptAfter = (at, pattern) => {
     const transcript = events
