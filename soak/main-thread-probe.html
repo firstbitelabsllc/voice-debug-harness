@@ -15,6 +15,7 @@
     let dc;
     let stream;
     let remoteAudio;
+    let roomNoise;
 
     const status = value => { document.querySelector('#status').textContent = value; };
     const emit = value => window.recordProbeEvent?.(value);
@@ -59,7 +60,43 @@
       dc.send(JSON.stringify(event));
     };
 
+    window.sampleOutboundAudioStats = async () => {
+      if (!pc) throw new Error('peer connection is not open');
+      const stats = await pc.getStats();
+      const outbound = [...stats.values()].find(report =>
+        report.type === 'outbound-rtp' &&
+        report.kind === 'audio' &&
+        !report.isRemote
+      );
+      return outbound ? {
+        packets_sent: outbound.packetsSent ?? null,
+        bytes_sent: outbound.bytesSent ?? null,
+      } : null;
+    };
+
+    window.startProbeRoomNoise = async () => {
+      if (roomNoise) return;
+      const ctx = window.__micCtx;
+      const dest = window.__micDest;
+      if (!ctx || !dest) throw new Error('fake microphone graph is not ready');
+      if (ctx.state === 'suspended') await ctx.resume();
+      const frames = Math.max(1, Math.floor(ctx.sampleRate * 2));
+      const buffer = ctx.createBuffer(1, frames, ctx.sampleRate);
+      const samples = buffer.getChannelData(0);
+      for (let i = 0; i < samples.length; i += 1) samples[i] = (Math.random() * 2 - 1) * 0.0008;
+      const source = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      source.buffer = buffer;
+      source.loop = true;
+      gain.gain.value = 1;
+      source.connect(gain).connect(dest);
+      source.start();
+      roomNoise = { source, gain };
+    };
+
     window.stopProbe = () => {
+      roomNoise?.source.stop();
+      roomNoise = undefined;
       stream?.getTracks().forEach(track => track.stop());
       dc?.close();
       pc?.close();
@@ -68,4 +105,3 @@
   </script>
 </body>
 </html>
-

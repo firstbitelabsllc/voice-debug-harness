@@ -178,6 +178,20 @@ async function runPersona({ persona, baseUrl, token, logPath, fixtureDir, chromi
       const durationSeconds = await feedAudio(page, bytes);
       await sleep(Math.ceil(durationSeconds * 1_000) + 300);
     };
+    const waitForAssistantQuiet = async (afterMs, quietMs = 1_200, maxWaitMs = 8_000) => {
+      const deadline = Date.now() + maxWaitMs;
+      while (Date.now() < deadline) {
+        const lastOutput = personaEvents.findLast(
+          event => eventType(event) === 'session.output_transcript.delta' && event.at_ms >= afterMs,
+        );
+        if (lastOutput && Date.now() - startedAt - lastOutput.at_ms >= quietMs) {
+          log({ type: 'probe.assistant_quiet', quiet_ms: Date.now() - startedAt - lastOutput.at_ms });
+          return;
+        }
+        await sleep(100);
+      }
+      log({ type: 'probe.assistant_quiet_timeout', max_wait_ms: maxWaitMs });
+    };
     await feed('A', fixtures.A);
     const delegationA = await inbox.wait(event => eventType(event) === 'session.delegation.created', 30_000, 'delegation A');
     delegationA.label = 'A';
@@ -198,6 +212,7 @@ async function runPersona({ persona, baseUrl, token, logPath, fixtureDir, chromi
       log({ type: 'probe.override', accepted: Boolean(ack), event_id: overrideId, delegation_id: delegationA.delegation?.id });
     }
 
+    await waitForAssistantQuiet(delegationA.at_ms);
     await feed('smalltalk', fixtures.smalltalk);
     await inbox.wait(
       event => eventType(event) === 'session.output_transcript.delta' &&
