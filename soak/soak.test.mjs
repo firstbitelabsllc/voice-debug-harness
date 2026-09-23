@@ -2,10 +2,13 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+  addReplyOnce,
   buildSyntheticChunk,
   checkpointForTurn,
   completionDelayMs,
   evaluateReplay,
+  reconnectAwayBounds,
+  resumeDisposition,
   scoreRecall,
 } from './long-chat.mjs';
 import { summarize } from './report.mjs';
@@ -54,6 +57,77 @@ describe('long-chat soak helpers', () => {
       evaluateReplay({ lastSeen: 10, latestSeq: 13, seqs: [11, 13], truncated: false, completeCount: 2, expectedEpoch: 'e1', epoch: 'e2' }).reasons,
       ['seq_gap:12', 'terminal_count:2', 'epoch_changed:e1->e2'],
     );
+  });
+
+  it('reconciles a completed reply from resume messages when the runtime changed and replay is empty', () => {
+    const prompt = 'Which color is named?';
+    const result = resumeDisposition({
+      previousRuntimeId: 'runtime-old',
+      resumed: {
+        session_id: 'runtime-new',
+        running: false,
+        messages: [
+          { role: 'user', text: prompt, row_id: 41 },
+          { role: 'assistant', text: 'Amber.', row_id: 42 },
+        ],
+      },
+      replay: { events: [], latest_seq: 0, truncated: false },
+      lastSeen: 9,
+      prompt,
+      turn: 6,
+    });
+
+    assert.equal(result.action, 'complete');
+    assert.equal(result.reply.text, 'Amber.');
+    assert.deepEqual(result.receipt, {
+      type: 'reconcile',
+      turn: 6,
+      reason: 'runtime_changed',
+      from: 'resume_messages',
+      found_reply: true,
+      watermark_ahead: true,
+    });
+  });
+
+  it('waits for a terminal event when reconciliation finds no reply but the resumed turn is running', () => {
+    const prompt = 'Which color is named?';
+    const result = resumeDisposition({
+      previousRuntimeId: 'runtime-old',
+      resumed: {
+        session_id: 'runtime-new',
+        running: true,
+        messages: [{ role: 'user', text: prompt, row_id: 41 }],
+      },
+      replay: { events: [], latest_seq: 0, truncated: false },
+      lastSeen: 9,
+      prompt,
+      turn: 6,
+    });
+
+    assert.equal(result.action, 'wait');
+    assert.equal(result.receipt.reason, 'runtime_changed');
+    assert.equal(result.receipt.found_reply, false);
+  });
+
+  it('suppresses the same reply observed from terminal replay and durable history', () => {
+    const accepted = [];
+
+    assert.equal(addReplyOnce(accepted, { type: 'message.complete', payload: { text: 'Amber.' } }), true);
+    assert.equal(addReplyOnce(accepted, { role: 'assistant', text: 'Amber.', row_id: 42 }), false);
+    assert.equal(accepted.length, 1);
+  });
+
+  it('deliberately alternates reconnects inside and outside the detached-session grace', () => {
+    assert.deepEqual(reconnectAwayBounds(3, 5_000, 60_000), {
+      min: 5_000,
+      max: 15_000,
+      grace_side: 'inside',
+    });
+    assert.deepEqual(reconnectAwayBounds(6, 5_000, 60_000), {
+      min: 30_000,
+      max: 60_000,
+      grace_side: 'outside',
+    });
   });
 });
 

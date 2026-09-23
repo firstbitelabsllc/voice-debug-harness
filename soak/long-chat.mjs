@@ -14,6 +14,7 @@ const PREFERENCES = [
   'I prefer quiet trains to busy buses.',
   'I prefer blue notebooks for technical work.',
 ];
+const DETACHED_SESSION_GRACE_MS = 20_000;
 
 export const DEFAULTS = Object.freeze({
   turns: 30,
@@ -105,6 +106,92 @@ export function evaluateReplay({ lastSeen, latestSeq, seqs, truncated, completeC
   if (completeCount !== 1) reasons.push(`terminal_count:${completeCount}`);
   if (expectedEpoch && epoch && expectedEpoch !== epoch) reasons.push(`epoch_changed:${expectedEpoch}->${epoch}`);
   return { pass: reasons.length === 0, reasons };
+}
+
+function replyParts(reply) {
+  const value = reply?.payload ?? reply ?? {};
+  const id = value.message_id ?? value.row_id ?? value.id ?? reply?.message_id ?? reply?.row_id ?? reply?.id;
+  const text = String(value.text ?? value.content ?? '').trim();
+  return { id: id === undefined || id === null ? '' : String(id), text };
+}
+
+export function addReplyOnce(accepted, reply) {
+  const candidate = replyParts(reply);
+  const duplicate = accepted.some(existing => {
+    const seen = replyParts(existing);
+    return Boolean(candidate.id && seen.id && candidate.id === seen.id) ||
+      Boolean(candidate.text && seen.text && candidate.text === seen.text);
+  });
+  if (duplicate) return false;
+  accepted.push(reply);
+  return true;
+}
+
+function replyAfterPrompt(messages, prompt) {
+  if (!Array.isArray(messages) || !messages.length) return null;
+  let promptIndex = -1;
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.role === 'user' && String(message.text ?? message.content ?? '') === prompt) {
+      promptIndex = index;
+      break;
+    }
+  }
+  const last = messages.at(-1);
+  return promptIndex >= 0 && promptIndex < messages.length - 1 && last?.role === 'assistant'
+    ? last
+    : null;
+}
+
+export function resumeDisposition({
+  previousRuntimeId,
+  resumed,
+  replay,
+  lastSeen,
+  prompt,
+  turn,
+  messages = resumed?.messages,
+  from = 'resume_messages',
+}) {
+  const reason = resumed?.session_id !== previousRuntimeId
+    ? 'runtime_changed'
+    : replay?.truncated
+      ? 'truncated'
+      : resumed?.running === false
+        ? 'not_running'
+        : null;
+  if (!reason) return { action: 'wait', reply: null, receipt: null };
+  const reply = replyAfterPrompt(messages, prompt);
+  const receipt = {
+    type: 'reconcile',
+    turn,
+    reason,
+    from,
+    found_reply: Boolean(reply),
+    watermark_ahead: lastSeen > (Number(replay?.latest_seq) || 0),
+  };
+  return {
+    action: reply ? 'complete' : resumed?.running === true ? 'wait' : 'missing',
+    reply,
+    receipt,
+  };
+}
+
+export function reconnectAwayBounds(turn, configuredMin, configuredMax) {
+  const min = Number(configuredMin);
+  const max = Number(configuredMax);
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min > 15_000 || max < 30_000) {
+    throw new Error('reconnect range must span the 5-15 s and 30-60 s grace buckets');
+  }
+  const reconnectOrdinal = Math.max(1, Math.round(turn / 3));
+  if (reconnectOrdinal % 2 === 1) {
+    return { min: Math.max(5_000, min), max: Math.min(15_000, max), grace_side: 'inside' };
+  }
+  return { min: Math.max(30_000, min), max: Math.min(60_000, max), grace_side: 'outside' };
+}
+
+function graceSide(awayMs) {
+  return awayMs < DETACHED_SESSION_GRACE_MS ? 'inside' : 'outside';
 }
 
 class RpcClient {
@@ -223,9 +310,18 @@ async function waitForTurn({ client, runtimeId, storedId, prompt, reconnect, awa
   const observed = new Map();
   let firstDeltaAt = null;
   let completeEvent = null;
+  const acceptedReplies = [];
   let disconnected = false;
   let resolveTerminal;
   const terminal = new Promise(resolve => { resolveTerminal = resolve; });
+  const acceptComplete = event => {
+    if (!addReplyOnce(acceptedReplies, event)) return false;
+    if (!completeEvent) {
+      completeEvent = event;
+      resolveTerminal(event);
+    }
+    return true;
+  };
   const consume = event => {
     if (event.session_id !== runtimeId) return;
     if (Number.isInteger(event.seq)) {
@@ -241,8 +337,7 @@ async function waitForTurn({ client, runtimeId, storedId, prompt, reconnect, awa
       }
     }
     if (event.type === 'message.complete') {
-      completeEvent = event;
-      resolveTerminal(event);
+      acceptComplete(event);
     }
   };
   let unsubscribe = client.onEvent(consume);
@@ -264,15 +359,56 @@ async function waitForTurn({ client, runtimeId, storedId, prompt, reconnect, awa
         if (event.session_id === runtimeId) liveAfterReconnect.push(event);
         consume(event);
       });
+      const previousRuntimeId = runtimeId;
       const resumed = await client.request('session.resume', { session_id: storedId, source: 'soak-long-chat' });
+      const runtimeChanged = resumed.session_id !== previousRuntimeId;
       runtimeId = resumed.session_id;
       state.runtimeId = runtimeId;
       const replay = await client.request('session.events.since', { session_id: runtimeId, last_seen: lastSeen });
+      if (runtimeChanged) {
+        observed.clear();
+        state.lastSeq = 0;
+      }
       for (const event of replay.events ?? []) consume(event);
       for (const event of liveAfterReconnect) consume(event);
-      if (!completeEvent) await Promise.race([terminal, sleep(660_000).then(() => { throw new Error('turn terminal timeout after reconnect'); })]);
+      state.lastSeq = Math.max(state.lastSeq, Number(replay.latest_seq) || 0);
+      if (!completeEvent) {
+        let disposition = resumeDisposition({ previousRuntimeId, resumed, replay, lastSeen, prompt, turn });
+        if (disposition.receipt && !disposition.reply) {
+          const history = await client.request('session.history', { session_id: runtimeId }).catch(() => null);
+          if (Array.isArray(history?.messages)) {
+            disposition = resumeDisposition({
+              previousRuntimeId,
+              resumed,
+              replay,
+              lastSeen,
+              prompt,
+              turn,
+              messages: history.messages,
+              from: 'session_history',
+            });
+          }
+        }
+        if (disposition.receipt) record(logPath, disposition.receipt);
+        if (disposition.reply) {
+          acceptComplete({
+            type: 'message.complete',
+            session_id: runtimeId,
+            payload: {
+              text: disposition.reply.text ?? disposition.reply.content ?? '',
+              row_id: disposition.reply.row_id,
+              status: 'complete',
+              reconciled: true,
+            },
+          });
+        } else if (disposition.action === 'wait' && resumed.running === true) {
+          await Promise.race([terminal, sleep(660_000).then(() => { throw new Error('turn terminal timeout after reconnect'); })]);
+        } else {
+          throw new Error(`turn reply missing after ${disposition.receipt?.reason ?? 'resume'} reconciliation`);
+        }
+      }
       const seqs = [...observed.keys()].filter(seq => seq > lastSeen).sort((a, b) => a - b);
-      const completeCount = [...observed.values()].filter(event => event.type === 'message.complete').length;
+      const completeCount = acceptedReplies.length;
       replayReceipt = {
         ...evaluateReplay({
           lastSeen,
@@ -285,6 +421,7 @@ async function waitForTurn({ client, runtimeId, storedId, prompt, reconnect, awa
         }),
         turn,
         away_ms: awayMs,
+        grace_side: graceSide(awayMs),
         truncated: Boolean(replay.truncated),
         last_seen: lastSeen,
         latest_seq: replay.latest_seq,
@@ -373,9 +510,17 @@ async function worker(args) {
     const target = state.startedAt + (turn - 1) * intervalMs;
     if (Date.now() < target) await sleep(target - Date.now());
     const reconnect = turn % 3 === 0;
-    const awayMs = turn === longAwayTurn
-      ? numberArg(args, 'long-away-ms', DEFAULTS.longAwayMs)
-      : reconnect ? randomInt(numberArg(args, 'reconnect-min-ms', DEFAULTS.reconnectMinMs), numberArg(args, 'reconnect-max-ms', DEFAULTS.reconnectMaxMs) + 1) : 0;
+    let awayMs = 0;
+    if (turn === longAwayTurn) {
+      awayMs = numberArg(args, 'long-away-ms', DEFAULTS.longAwayMs);
+    } else if (reconnect) {
+      const bounds = reconnectAwayBounds(
+        turn,
+        numberArg(args, 'reconnect-min-ms', DEFAULTS.reconnectMinMs),
+        numberArg(args, 'reconnect-max-ms', DEFAULTS.reconnectMaxMs),
+      );
+      awayMs = randomInt(bounds.min, bounds.max + 1);
+    }
     // Only phase one owns facts; recall prompts never restate them.
     const prompt = promptForTurn(turn, turns, state.facts ?? { codeword: '', number: '', preference: '' });
     let result = await waitForTurn({ client, runtimeId: state.runtimeId, storedId, prompt, reconnect: reconnect || turn === longAwayTurn, awayMs, state, logPath, turn });
