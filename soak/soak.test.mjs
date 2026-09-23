@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import {
   buildSyntheticChunk,
   checkpointForTurn,
+  completionDelayMs,
   evaluateReplay,
   scoreRecall,
 } from './long-chat.mjs';
@@ -26,6 +27,11 @@ describe('long-chat soak helpers', () => {
       [30, 60, 90, 115],
     );
     assert.equal(checkpointForTurn(14, 30), null);
+  });
+
+  it('holds the completion record until the full requested duration', () => {
+    assert.equal(completionDelayMs(1_000, 6_000, 10_000), 5_000);
+    assert.equal(completionDelayMs(1_000, 12_000, 10_000), 0);
   });
 
   it('scores planted facts by exact value without accepting partial recall', () => {

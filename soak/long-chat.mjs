@@ -18,6 +18,7 @@ const PREFERENCES = [
 export const DEFAULTS = Object.freeze({
   turns: 30,
   intervalMs: 240_000,
+  durationMs: 7_200_000,
   longAwayTurn: 12,
   clientDeathTurn: 20,
   reconnectMinMs: 5_000,
@@ -78,6 +79,10 @@ export function checkpointForTurn(turn, totalTurns = DEFAULTS.turns) {
     [totalTurns, 115],
   ]);
   return mapping.get(turn) ?? null;
+}
+
+export function completionDelayMs(startedAt, now, durationMs = DEFAULTS.durationMs) {
+  return Math.max(0, startedAt + durationMs - now);
 }
 
 export function scoreRecall(text, facts) {
@@ -325,6 +330,7 @@ async function worker(args) {
   if (!logPath || !cachePath || !token) throw new Error('worker needs --log, --cache, and HERMES_SOAK_TOKEN');
   const turns = numberArg(args, 'turns', DEFAULTS.turns);
   const intervalMs = numberArg(args, 'interval-ms', DEFAULTS.intervalMs);
+  const durationMs = numberArg(args, 'duration-ms', DEFAULTS.durationMs);
   const deathTurn = numberArg(args, 'client-death-turn', DEFAULTS.clientDeathTurn);
   const longAwayTurn = numberArg(args, 'long-away-turn', DEFAULTS.longAwayTurn);
   const state = {
@@ -402,6 +408,8 @@ async function worker(args) {
       process.exit(75);
     }
   }
+  const finalDelay = completionDelayMs(state.startedAt, Date.now(), durationMs);
+  if (finalDelay > 0) await sleep(finalDelay);
   client.close();
   record(logPath, { type: 'complete', turns, completed_at: iso(), session_id: storedId, last_seq: state.lastSeq, epoch: state.epoch });
 }
