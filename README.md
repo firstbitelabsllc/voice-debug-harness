@@ -82,6 +82,34 @@ The browser check fails if the microphone is noisy before the feed or its
 mean RMS stays at or below 0.02 afterward. Speech recognition and your app's
 response need their own assertions.
 
+GitHub Actions runs these checks on pull requests, pushes to `main`, and all
+tags. Feature-branch pushes use the pull request run instead of starting a
+duplicate suite. Use the **Run workflow** button on the `ci` workflow for a
+branch that needs remote proof before a pull request exists. Security scans
+keep their independent triggers.
+
+## Code review
+
+`.coderabbit.yaml` configures CodeRabbit for this repository when the GitHub app
+has access. It enables incremental reviews, including drafts, with extra focus
+on offline operation, WAV validation, package safety, and measured Chromium
+microphone behavior. Fix suggestions and generated tests remain subject to the
+checks above; a clean AI review does not prove microphone behavior.
+
+Knowledge-base learnings, issues, and prior PR context stay local to this
+repository. Automatic cross-repository linking is disabled; review guidelines
+come from its README, SECURITY, AGENTS, and REVIEW files.
+
+CodeRabbit approval may be issued through a manual override. Require an
+independently completed review of the exact PR head, passing required checks,
+and resolved human change requests before merging; approval alone is not that
+proof.
+
+Automatic review pauses after five reviewed commits to avoid repeated review
+loops. Batch related fixes and resume review deliberately. This configuration
+does not install the app, grant trial features, enable automatic merging, or
+replace existing test and release gates.
+
 To reproduce the screenshot and recording, run `npm run demo:record`. See
 [the example source](examples/demo.mjs) and [capture notes](docs/capture.md).
 

@@ -1,0 +1,124 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# This file applies to this repository. See README.md for review and proof usage.
+language: en-US
+inheritance: true
+tone_instructions: >-
+  Be concise and evidence-led. Prioritize correctness, security, regressions,
+  and missing verification. Give file/line evidence and a concrete fix. Respect
+  repository-specific local-first workflows; avoid cosmetic churn.
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  allow_author_approval: false
+  high_level_summary: true
+  high_level_summary_instructions: >-
+    Explain the behavior change, affected components, compatibility risks, and
+    validation reported in the PR. Clearly distinguish reported proof from
+    checks you actually observed; never invent a successful test run.
+  review_status: true
+  review_details: true
+  fail_commit_status: true
+  collapse_walkthrough: true
+  sequence_diagrams: true
+  estimate_code_review_effort: true
+  assess_linked_issues: true
+  suggested_reviewers: true
+  enable_prompt_for_ai_agents: true
+  in_progress_fortune: false
+  poem: false
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: true
+    # Batch fixes; resume deliberately instead of exhausting the trial in a loop.
+    auto_pause_after_reviewed_commits: 5
+  slop_detection:
+    enabled: true
+    include_all_authors: true
+  path_instructions:
+    - path: "**/*"
+      instructions: >-
+        Follow applicable repository AGENTS.md, REVIEW.md, and contributor rules.
+        Prioritize reproducible defects, trust boundaries, data loss, compatibility,
+        and missing behavior coverage. Report uncertainty explicitly. Do not treat
+        an AI review or a PR author's claim as proof that tests ran. Preserve
+        local-first proof requirements and existing release/merge gates.
+    - path: ".github/workflows/**"
+      instructions: >-
+        Check event duplication, job permissions, untrusted PR input, secret
+        exposure, action pinning, concurrency, and artifact retention. Preserve
+        required check names and intentional manual/scheduled workflows. Prefer
+        existing local proof and opt-in Blacksmith lanes. Never suggest replacing
+        deterministic tests with AI review or moving privileged jobs to PR contexts.
+    - path: "**/*.{test,spec}.{js,jsx,ts,tsx}"
+      instructions: >-
+        Prefer behavior and regression tests over implementation mirrors. Check
+        isolation, deterministic inputs, failure paths, and async cleanup. Avoid
+        increasing cloud CI when the repository requires local proof.
+    - path: "**/*.swift"
+      instructions: >-
+        Check actor isolation, main-thread UI work, cancellation, ownership cycles,
+        and supported OS/API availability. Preserve platform-specific build proof.
+    - path: "**/*.md"
+      instructions: >-
+        Verify commands, paths, feature availability, and links against the code
+        and cited source. Distinguish configured capabilities from activated
+        services, trial entitlements, completed tests, and deployment receipts.
+    - path: "**/*.mjs"
+      instructions: >-
+        Preserve Node 20+ compatibility, offline operation, bounded WAV parsing,
+        mono PCM16 validation, and consumer-safe package writes. Distinguish
+        synthetic fixture energy from speech recognition quality. For microphone
+        changes require real Chromium proof of silence before feed and measured
+        audio after feed; offline unit tests alone do not establish that behavior.
+  pre_merge_checks:
+    override_requested_reviewers_only: true
+    title:
+      mode: warning
+      requirements: Describe the concrete behavior changed; avoid generic titles.
+    description:
+      mode: warning
+    issue_assessment:
+      mode: warning
+    docstrings:
+      mode: "off"
+    custom_checks:
+      - name: Verification evidence
+        mode: warning
+        instructions: >-
+          Pass when the PR description names the verification commands, their
+          outcomes, and the tested commit or states that only documentation changed
+          and describes its validation. Warn when proof is absent, stale relative
+          to the latest change, or claimed without an outcome. This checks the
+          completeness of reported evidence; it does not execute or authenticate it.
+  finishing_touches:
+    docstrings:
+      enabled: true
+    unit_tests:
+      enabled: true
+    simplify:
+      enabled: true
+    autofix:
+      enabled: true
+    fix_ci:
+      enabled: true
+    resolve_merge_conflict:
+      enabled: true
+knowledge_base:
+  automatic_linking_mode: disabled
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - README.md
+      - SECURITY.md
+      - "**/AGENTS.md"
+      - "**/REVIEW.md"
+  learnings:
+    scope: local
+  issues:
+    scope: local
+  pull_requests:
+    scope: local
+chat:
+  auto_reply: true
+  art: false

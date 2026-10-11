@@ -1,8 +1,12 @@
 name: ci
 
 on:
+  # PRs prove feature branches once; main and tags retain post-merge/release proof.
   push:
+    branches: [main]
+    tags: ["**"]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
