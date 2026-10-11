@@ -81,7 +81,7 @@ reviews:
     issue_assessment:
       mode: warning
     docstrings:
-      mode: off
+      mode: "off"
     custom_checks:
       - name: Verification evidence
         mode: warning
@@ -105,14 +105,20 @@ reviews:
     resolve_merge_conflict:
       enabled: true
 knowledge_base:
+  automatic_linking_mode: disabled
   code_guidelines:
     enabled: true
+    filePatterns:
+      - README.md
+      - SECURITY.md
+      - "**/AGENTS.md"
+      - "**/REVIEW.md"
   learnings:
-    scope: auto
+    scope: local
   issues:
-    scope: auto
+    scope: local
   pull_requests:
-    scope: auto
+    scope: local
 chat:
   auto_reply: true
   art: false

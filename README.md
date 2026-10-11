@@ -96,6 +96,15 @@ on offline operation, WAV validation, package safety, and measured Chromium
 microphone behavior. Fix suggestions and generated tests remain subject to the
 checks above; a clean AI review does not prove microphone behavior.
 
+Knowledge-base learnings, issues, and prior PR context stay local to this
+repository. Automatic cross-repository linking is disabled; review guidelines
+come from its README, SECURITY, AGENTS, and REVIEW files.
+
+CodeRabbit approval may be issued through a manual override. Require an
+independently completed review of the exact PR head, passing required checks,
+and resolved human change requests before merging; approval alone is not that
+proof.
+
 Automatic review pauses after five reviewed commits to avoid repeated review
 loops. Batch related fixes and resume review deliberately. This configuration
 does not install the app, grant trial features, enable automatic merging, or
