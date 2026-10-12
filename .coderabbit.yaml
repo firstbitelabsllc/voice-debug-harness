@@ -64,6 +64,13 @@ reviews:
         Verify commands, paths, feature availability, and links against the code
         and cited source. Distinguish configured capabilities from activated
         services, trial entitlements, completed tests, and deployment receipts.
+    - path: ".githooks/**"
+      instructions: >-
+        These hooks are the Takeoff merge gate. `takeoff/land` at the exact PR head
+        is posted only by the local land series, and `.githooks/land-pr` is the only
+        merge route. Flag any change that lowers a floor, drops or renames a lane,
+        weakens a marker, or adds a merge path that skips a guard. Your review can
+        withhold a merge but never replaces the land receipt or required checks.
     - path: "**/*.mjs"
       instructions: >-
         Preserve Node 20+ compatibility, offline operation, bounded WAV parsing,
@@ -93,17 +100,17 @@ reviews:
           completeness of reported evidence; it does not execute or authenticate it.
   finishing_touches:
     docstrings:
-      enabled: true
+      enabled: false
     unit_tests:
-      enabled: true
+      enabled: false
     simplify:
-      enabled: true
+      enabled: false
     autofix:
-      enabled: true
+      enabled: false
     fix_ci:
-      enabled: true
+      enabled: false
     resolve_merge_conflict:
-      enabled: true
+      enabled: false
 knowledge_base:
   automatic_linking_mode: disabled
   code_guidelines:

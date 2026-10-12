@@ -1,0 +1,15 @@
+#!/bin/sh
+# takeoff step series (METHOD T7), run at landing: `.githooks/land [<commit>]`.
+# A-B are the deterministic local lanes; the browser journey stays in required CI (browser
+# (node22)), which `.githooks/land-pr` reads at the head. D-F are bin/review judgment steps.
+TAKEOFF="${TAKEOFF_HOME:-$HOME/Development/takeoff}"
+[ -x "$TAKEOFF/bin/gate" ] && [ -x "$TAKEOFF/bin/review" ] || {
+  echo "takeoff land: REFUSED — install takeoff at $TAKEOFF (bin/gate, bin/review)" >&2; exit 1; }
+V='^verdict: (?:pass|concerns)$'
+exec "$TAKEOFF/bin/gate" commit "${1:-HEAD}" --warm node_modules=package-lock.json \
+  --lane A-unit --run 'npm test' --marker '^ℹ pass ([0-9]+)$' --floor 44 \
+  --lane B-package --run 'npm run ci:offline && npm run release:verify && npm run test:consumer' \
+    --marker '"installedTreeUnchanged":true' --floor 1 \
+  --lane D-quality --run "$TAKEOFF/bin/review quality" --marker "$V" --floor 1 \
+  --lane E-architecture --run "$TAKEOFF/bin/review architecture" --marker "$V" --floor 1 \
+  --lane F-product --run "$TAKEOFF/bin/review product" --marker "$V" --floor 1
