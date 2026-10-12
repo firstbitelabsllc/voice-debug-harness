@@ -100,17 +100,17 @@ reviews:
           completeness of reported evidence; it does not execute or authenticate it.
   finishing_touches:
     docstrings:
-      enabled: true
+      enabled: false
     unit_tests:
-      enabled: true
+      enabled: false
     simplify:
-      enabled: true
+      enabled: false
     autofix:
-      enabled: true
+      enabled: false
     fix_ci:
-      enabled: true
+      enabled: false
     resolve_merge_conflict:
-      enabled: true
+      enabled: false
 knowledge_base:
   automatic_linking_mode: disabled
   code_guidelines:
