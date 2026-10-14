@@ -1,4 +1,3 @@
-/** voice-debug-harness — portable core exports. */
 export {
   writeWavFile,
   readBoundedWavFile,

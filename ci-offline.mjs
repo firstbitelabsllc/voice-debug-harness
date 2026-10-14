@@ -1,10 +1,4 @@
 #!/usr/bin/env node
-/**
- * Offline Class A CI — no Next, Cypress, Playwright, or network.
- *
- *   node ci-offline.mjs
- *   npm run ci:offline   (from this package)
- */
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -37,12 +31,9 @@ function run(args, corpusDir = CORPUS) {
 try {
   run(["list"]);
   run(["energy"]);
-  // Generate is always an offline synthetic-energy operation.
   run(["generate", "--id", "ci-offline-synth"], GENERATED_CORPUS);
   run(["list"], GENERATED_CORPUS);
 
-  // Unit smoke (node:test) — mic-feed/energy/chromium contracts, plus the
-  // WER comparison layer is bounded string comparison only.
   const unit = spawnSync(
     process.execPath,
     [
