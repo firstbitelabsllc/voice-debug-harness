@@ -5,6 +5,6 @@ TAKEOFF_HOME="${TAKEOFF_HOME:-$HOME/Development/skillbox-sources/takeoff}"
 export TAKEOFF_HOME
 [ -x "$TAKEOFF_HOME/bin/land-pr" ] || {
   echo "takeoff land-pr: REFUSED — install takeoff at $TAKEOFF_HOME (bin/land-pr)" >&2; exit 1; }
-exec "$TAKEOFF_HOME/bin/land-pr" "$@" --method merge \
+exec "$TAKEOFF_HOME/bin/land-pr" "$@" --method squash \
   --require-lane A-unit --require-lane B-package \
   --require-lane D-quality --require-lane E-architecture --require-lane F-product
