@@ -66,9 +66,11 @@ reviews:
         services, trial entitlements, completed tests, and deployment receipts.
     - path: ".githooks/**"
       instructions: >-
-        These hooks are the Takeoff merge gate. `takeoff/land` at the exact PR head
-        is posted only by the local land series, and `.githooks/land-pr` is the only
-        merge route. Flag any change that lowers a floor, drops or renames a lane,
+        These hooks produce native Takeoff proof. `takeoff/land` at the exact PR
+        head is posted only by the local land series. The approved installed
+        `bin/land-pr` reads the pinned base `.githooks/land-pr-lanes`; a checkout-owned
+        wrapper must not replace that entrypoint. Flag any change that lowers a
+        floor, drops or renames a lane,
         weakens a marker, or adds a merge path that skips a guard. Your review can
         withhold a merge but never replaces the land receipt or required checks.
     - path: "**/*.mjs"
