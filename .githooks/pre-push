@@ -2,7 +2,7 @@
 # takeoff gate (METHOD T7): judge each pushed ref's tip commit in an isolated clone.
 # The judge is the installed takeoff, not the branch being pushed. Push runs the fast lane;
 # `.githooks/land` runs the full series at landing and `.githooks/land-pr` merges through it.
-TAKEOFF="${TAKEOFF_HOME:-$HOME/Development/takeoff}"
+TAKEOFF="${TAKEOFF_HOME:-$HOME/Development/skillbox-sources/takeoff}"
 GATE="${TAKEOFF_GATE_BIN:-$TAKEOFF/bin/gate}"
 if [ ! -x "$GATE" ]; then
   echo "takeoff gate: REFUSED — no gate at $GATE (install takeoff or set TAKEOFF_HOME)" >&2
