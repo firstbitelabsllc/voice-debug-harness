@@ -31,17 +31,19 @@ if [ ! -x "$TAKEOFF_DIR/bin/gate" ]; then
   fi
 fi
 if [ -x "$TAKEOFF_DIR/bin/gate" ] && [ -n "${CLAUDE_ENV_FILE:-}" ]; then
-  echo "export TAKEOFF_HOME=\"$TAKEOFF_DIR\"" >> "$CLAUDE_ENV_FILE"
+  printf 'export TAKEOFF_HOME=%q\n' "$TAKEOFF_DIR" >> "$CLAUDE_ENV_FILE"
 fi
 
 # SessionStart also fires on resume, clear and compact. Skip the install when
 # node_modules is newer than both manifests, so `npm ci` (which deletes
 # node_modules) never wipes a working tree mid-session.
 if [ -f node_modules/.package-lock.json ] \
+  && [ -d node_modules/playwright ] \
+  && [ -d node_modules/playwright-core ] \
   && [ node_modules/.package-lock.json -nt package-lock.json ] \
   && [ node_modules/.package-lock.json -nt package.json ]; then
   exit 0
 fi
 
 # npm ci keeps package-lock.json untouched (npm install rewrites it).
-npm ci --no-audit --no-fund
+npm ci --include=dev --no-audit --no-fund
