@@ -1,4 +1,4 @@
-<img src="docs/assets/cover.png" width="1280" alt="Voice Debug Harness — Same audio. Every test.">
+<img src="docs/assets/cover.png" width="1280" alt="Voice Debug Harness. Same audio. Every test.">
 
 # Voice Debug Harness
 
